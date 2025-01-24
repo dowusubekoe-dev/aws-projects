@@ -175,3 +175,23 @@ Below is a step-by-step guide with Terraform code to create a Windows EC2 instan
     sensitive = true
    }
    ```
+
+**5. Initialize Terraform:**
+
+   1.  Open a terminal or command prompt.
+   2.  Navigate to the directory containing your `main.tf`, `variables.tf` and `outputs.tf` files.
+   3.  Run the command `terraform validate`. The command will validate the code for any errors.
+   4.  Run the command `terraform init`. This command initializes the Terraform project and downloads the necessary provider plugins.
+
+**6.  Apply the Terraform Configuration:**
+
+    1.  Run the command `terraform apply`.
+    2.  Terraform will display a plan of the resources that will be created.  Review this plan carefully.
+    3.  If everything looks correct, type `yes` and press Enter to confirm and create the resources.
+    4.  Once terraform has completed, take note of the public_ip value.
+
+**7. Retrieve the Private Key and Save it to a `.pem` file**
+
+   1. Run the command `terraform output` to get the private key.
+   2. Copy the sensitive value, and then save it into a file with the name `windows-instance-key.pem`
+   3. You may need to remove new lines from the private key string that gets outputted. If you are on a unix system use the command `sed -e :a -e '$!N;s/\n//;ta' windows-instance-key.pem > cleaned-windows-instance-key.pem` to remove them.
