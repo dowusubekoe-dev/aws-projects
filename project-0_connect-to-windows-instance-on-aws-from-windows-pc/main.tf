@@ -70,7 +70,7 @@ terraform {
        from_port   = 3389
        to_port     = 3389
        protocol    = "tcp"
-       cidr_blocks = ["0.0.0.0/0"] #Restrict this to your IP for production
+       cidr_blocks = ["70.127.87.143/32"] #Restrict this to your IP for production
      }
 
     egress {
