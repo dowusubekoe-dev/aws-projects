@@ -52,7 +52,7 @@ variable "key_name" {
 
 2. Remote Desktop Connetion error
 
-![Remote Desktop Connection](/cloud-projects/amazon-workspace/project-0_connect-to-windows-instance-on-aws-from-windows-pc/images/remote-desktop-error.PNG)
+![Remote Desktop Connection](./images/remote-desktop-error.PNG)
 
 - Remote Access is Not Enabled on the Server:
 
