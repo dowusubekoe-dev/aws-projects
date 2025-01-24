@@ -59,8 +59,12 @@ resource "aws_security_group" "aws-windows-ec2-sg" {
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
-    cidr_blocks = ["${var.windows-ec2-cidr}"]
-  }
+    cidr_blocks = ["${var.windows-ec2-cidr}"] # Replace with your IP range
+    }
+
+    tags = {
+        Name = "allow-rdp-from-aws-windows-ec2-sg"
+    }
 
   # Allow outbound traffic to the internet
   egress {
@@ -69,8 +73,18 @@ resource "aws_security_group" "aws-windows-ec2-sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
     }
+}
 
-    tags = {
-        Name = "aws-windows-ec2-sg"
-    }
+# Create Windows EC2 Instance
+resource "aws_instance" "windows_server" {
+  ami           = var.ami_id # Replace with the latest Windows Server AMI ID for your region
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.aws-windows-ec2-subnet-1.id
+  security_groups = [aws_security_group.aws-windows-ec2-sg.id]
+  key_name = var.key_name # Replace with your key pair name
+  associate_public_ip_address = true
+
+  tags = {
+    Name = "windows-server-instance"
+  }
 }
