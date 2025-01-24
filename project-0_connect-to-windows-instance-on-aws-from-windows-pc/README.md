@@ -160,3 +160,18 @@ Below is a step-by-step guide with Terraform code to create a Windows EC2 instan
       }
    }
   ```
+
+  **4. Add the `outputs.tf` Configuration:**
+
+   Copy the following Terraform code into `outputs.tf`:
+
+   ```terraform
+   output "public_ip" {
+     value = aws_instance.windows_server.public_ip
+   }
+
+   output "private_key" {
+    value = tls_private_key.key.private_key_pem
+    sensitive = true
+   }
+   ```
