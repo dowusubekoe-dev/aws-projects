@@ -140,9 +140,9 @@ resource "aws_instance" "windows_server" {
     Name = "windows-server-instance"
   }
 }
-  ```
+```
 
-  **4. Add the `outputs.tf` Configuration:**
+**4. Add the `outputs.tf` Configuration:**
 
    Copy the following Terraform code into `outputs.tf`:
 
@@ -171,52 +171,49 @@ resource "aws_instance" "windows_server" {
    3. If everything looks correct, type `yes` and press Enter to confirm and create the resources.
    4. Once terraform has completed, take note of the public_ip value.
 
-**Challenges**
+**7.  Retrieve the Windows Administrator Password**
 
-1. Keypair import error
+   1. Select the instance in the EC2 Dashboard.
+   2. Click "Connect".
+   3. Click "RDP client".
+   4. Click "Get password".
+   5. **Upload the `private-key.pem` file**.
+   6. Click "Decrypt Password".
+   7. Note the decrypted password. **Important: Keep this password in a safe place.**
 
-```bash
-Error: importing EC2 Key Pair (aws-terraform-kp): operation error EC2: ImportKeyPair, https response error StatusCode: 400, RequestID: d533a85c-375a-4a62-a160-8d216720b6e7, api error InvalidKeyPair.Duplicate: The keypair already exists
-│
-│   with aws_key_pair.aws-terraform-keypair,
-│   on main.tf line 93, in resource "aws_key_pair" "aws-terraform-keypair":
-│   93: resource "aws_key_pair" "aws-terraform-keypair" {
-```
-**Understanding the Problem:**
+**8. Connect to the Windows Instance using Remote Desktop Connection (RDP):**
 
-aws_key_pair Resource: The Terraform aws_key_pair resource is designed to either create a new key pair or import an existing one based on the key_name argument. In this case, you are trying to create one as your intention was to use terraform to generate the keypair however a keypair with this name already exists, so terraform tries to import it. The import fails as the API does not allow you to import a keypair if a keypair with that name already exists.
+*   On your Windows laptop, open the Remote Desktop Connection client.
+*   In the "Computer" field, enter the **public ip** of your EC2 instance.
+*   Click "Connect".
+*   If you see a security certificate warning, click "Yes" to proceed. (This is normal.)
+*   Enter the following credentials:
+    *   **Username:** `Administrator`
+    *   **Password:** The password you decrypted in the previous step.
+*   Click "OK".
 
-InvalidKeyPair.Duplicate: The AWS API specifically states that the key pair name is already in use, and you cannot create another one with the same name.
+You should now be connected to your Windows Server instance in AWS!
 
-**Solution**
+**9. Clean up (Destroy) Resources When Done:**
 
-If you already have a key pair named "terraform-aws-keypair" that you intend to use, you should not try to create it with Terraform. Instead, you should just reference it by name in the aws_instance resource.
+*  When you are finished with the Windows Instance, you can use the command `terraform destroy` in your terminal. Type `yes` when prompted.
 
-Remove the aws_key_pair Resource: Remove the entire aws_key_pair block from your main.tf file.
+**Important Considerations:**
 
-Use the key_name in the aws_instance resource: Ensure your aws_instance resource references the existing key pair.
+*   **Security:**  The security group in this example is restricted (allowing RDP from only My IP).  For production environments, restrict the `cidr_blocks` in the ingress rule to your IP address or a known set of IP addresses.
+*   **Key Pair Management:** Protect the downloaded `.pem` file. If it's compromised, unauthorized users could gain access to your instance.
+*   **Customization:**  You can customize the instance type, AMI, storage, and other settings in the `aws_instance` resource block.
+*   **Error Handling:** Terraform provides error messages that can help troubleshoot issues.
 
-1. Remove the aws_key_pair Resource: Remove the entire aws_key_pair block from your main.tf file.
-2. 2Use the key_name in the aws_instance resource: Ensure your aws_instance resource references the existing key pair.
+**Explanation of the Terraform Code:**
 
-```hcl
-resource "aws_instance" "windows_server" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public_subnet.id
-  vpc_security_group_ids = [aws_security_group.allow_rdp.id]
-  key_name               = var.key_name # Use the existing keypair name from variable
-  associate_public_ip_address = true
-   tags = {
-      Name = "Windows-server"
-    }
-}
-```
-3. Make sure you also define key_name in your variables.tf
-
-```hcl
-variable "key_name" {
-       description = "Key pair name used for instance"
-       default     = "aws-terraform-kp" # Replace with existing keypair name from AWS console
-   }
-```
+*   **`provider "aws"`:** Configures the AWS provider with your credentials and desired region.
+*   **`aws_vpc`:** Creates a new Virtual Private Cloud (VPC).
+*   **`aws_internet_gateway`:** Creates an Internet Gateway for the VPC.
+*   **`aws_route_table`:** Creates a Route Table for the VPC.
+*   **`aws_subnet`:** Creates a subnet within the VPC.
+*   **`aws_route_table_association`:** Associates route table with the subnet.
+*   **`aws_security_group`:** Creates a security group for the instance, allowing inbound RDP traffic.
+*  **`aws_key_pair`:** Creates an SSH key pair, the private key is not downloaded by this, rather it is downloaded as a string during the `terraform output` command.
+*   **`aws_instance`:** Creates the EC2 instance, referencing the AMI, instance type, security group, and key pair.
+*   **Outputs**: Used to ouput the public IP address to be used for RDP access and also to output the key pair.

@@ -5,7 +5,7 @@ variable "aws_region" {
   default     = "us-east-1"
   description = "AWS region to deploy resources"
 }
-variable windows-ec2-cidr {
+variable "windows-ec2-cidr" {
   type        = string
   default     = "10.0.0.0/16"
   description = "windows instance cidr"
@@ -24,4 +24,9 @@ variable "key_name" {
   type        = string
   default     = "aws-terraform-kp"
   description = "Name of the key pair for SSH access"
+}
+variable "allowed_rdp_cidrs" {
+  description = "List of CIDR blocks allowed for RDP access. Defaults to current IP address"
+  type        = list(string)
+  default     = []
 }

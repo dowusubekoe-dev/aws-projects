@@ -2,15 +2,15 @@
 
 #  It specifies the required provider and its version.
 terraform {
-     required_providers {
-       aws = {
-         source  = "hashicorp/aws"
-         version = "~> 5.0"
-       }
-     }
-   }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
 
 # AWS Provider Configuration
-   provider "aws" {
-     region = "${var.aws_region}"
-   }
+provider "aws" {
+  region = var.aws_region
+}
