@@ -45,6 +45,16 @@ Update the `main.tf`, `variable.tf` and `provider.tf` files before initializing 
 - **main.tf**
 ![main.tf](./images/main.tf.png)
 
+
+### Create VPC
+
+Amazon Virtual Private Cloud (VPC) is a virtual network that allows users to launch AWS resources in a logically isolated section of the AWS cloud. VPCs are similar to traditional networks that run in a data center, but with the scalability of AWS.
+
+We need to create a `vpc` for the linux server.
+
+![Create VPC](./images/create-vpc.PNG)
+
+
 ### Create Public Subnet
 
 For this project, I will be accessing the linux server from outside the AWS environment so I need to create a `public subnet`.
@@ -61,6 +71,37 @@ resource "aws_subnet" "project-1-subnet" {
 }
 
 ```
+![Create Subnet](./images/create-subnet.PNG)
+
+Run the following terraform commands to confirm that there are no errors in the code;
+
+```bash
+terraform fmt
+```
+
+```bash
+terraform validate
+```
+Then follow up with `terraform plan` and `terraform apply`.
+
+
+### Create Internet Gateway
+
+An internet gateway is a horizontally scaled, redundant, and highly available VPC component that enables communication between your VPC and the internet.
+To use an internet gateway, attach it to your VPC and specify it as a target in your subnet route table for internet-routable IPv4 or IPv6 traffic.
+
+```hcl
+resource "aws_internet_gateway" "project-1-igw" {
+  vpc_id = aws_vpc.project-1-vpc.id
+
+  tags = {
+    Name = "project-1-igw"
+  }
+}
+```
+![Internet Gateway](./images/igw.PNG)
+
+
 
 
 
