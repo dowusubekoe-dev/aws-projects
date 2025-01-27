@@ -39,6 +39,7 @@ resource "aws_instance" "windows_server" {
     }
 }
 ```
+
 3. Make sure you also define key_name in your variables.tf
 
 ```hcl

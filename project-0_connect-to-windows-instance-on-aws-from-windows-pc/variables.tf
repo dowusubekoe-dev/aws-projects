@@ -25,8 +25,3 @@ variable "key_name" {
   default     = "aws-terraform-kp"
   description = "Name of the key pair for SSH access"
 }
-variable "allowed_rdp_cidrs" {
-  description = "List of CIDR blocks allowed for RDP access. Defaults to current IP address"
-  type        = list(string)
-  default     = []
-}
