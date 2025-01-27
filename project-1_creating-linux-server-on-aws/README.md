@@ -21,3 +21,58 @@ Create a new directory for your Terraform configuration files. Let's name it `pr
     mkdir project-1_creating-linux-server-on-aws
     cd project-1_creating-linux-server-on-aws
 ```
+
+2. **Add Terraform Code**
+
+Update the `main.tf`, `variable.tf` and `provider.tf` files before initializing providers `registry.terraform.io/hashicorp/aws`.
+
+**variables.tf**
+
+```hcl
+variable "aws_region" {
+  type        = string
+  default     = "us-east-1"
+  description = "AWS region to deploy resources"
+}
+
+variable "cidr_block" {
+  type        = string
+  default     = "10.0.0.0/16"
+  description = "CIDR block for the VPC"
+}
+
+```
+
+**provider.tf**
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+```
+
+**main.tf**
+
+``hcl
+resource "aws_vpc" "project-1-vpc" {
+  cidr_block = var.cidr_block
+
+  tags = {
+    Name = "project-1-vpc"
+  }
+}
+
+```
+
+
+
