@@ -8,4 +8,4 @@ This repository contains Terraform configurations for different AWS projects, sh
 
 ### [Project 1: Creating Linux Machine On AWS](./project-1_creating-linux-server-on-aws)
 
-### [Project 2: Host a Website on S3](./project-2_host-a-website-on-s3)
+### [Project 2: Host a Website on S3](./project-2_host-a-website-on-ecs-fargate)
