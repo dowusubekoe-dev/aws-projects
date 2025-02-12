@@ -1,0 +1,62 @@
+# .github/workflows/deploy.yml
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+
+env:
+  AWS_REGION: us-east-1  # Replace with your AWS region
+  ECR_REPOSITORY: my-web-app  # Replace with your ECR repository name
+  ECS_SERVICE: my-app-service # Replace with your ECS service name
+  ECS_CLUSTER: my-ecs-cluster # Replace with your ECS cluster name
+  TASK_DEFINITION: terraform/aws_ecs_task_definition.app_task.json # Path to your task definition JSON (see next step)
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::202533507419:role/github-actions-role # Replace with the ARN of your github actions IAM role
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: latest
+      run: |
+        # Build a docker container and push it to ECR
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: terraform/aws_ecs_task_definition.app_task.json
+        container-name: my-app-container # Replace with your container name
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
