@@ -37,12 +37,15 @@ Create a new directory for your Terraform configuration files. Let's name it `pr
 Update the `main.tf`, `variable.tf` and `provider.tf` files before initializing providers `registry.terraform.io/hashicorp/aws`.
 
 - **variables.tf**
+
 ![variables.tf](./images/variables.tf.png)
 
 - **provider.tf**
+
 ![provider.tf](./images/provider.tf.png)
 
 - **main.tf**
+
 ![main.tf](./images/main.tf.png)
 
 
