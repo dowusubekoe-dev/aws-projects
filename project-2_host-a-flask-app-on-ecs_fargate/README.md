@@ -240,3 +240,12 @@ variable "availability_zones" {
   description = "List of availability zones"
 }
 ```
+* Run the following terraform commands to confirm that there are no errors in the code;
+
+```bash
+terraform fmt
+```
+
+```bash
+terraform validate
+```
