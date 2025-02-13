@@ -129,14 +129,114 @@ module "ecs" {
   source = "./modules/ecs"
   name = "my-ecs-cluster"
   vpc_id = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets # Use private subnets for ECS Fargate
+  subnet_ids = module.vpc.private_subnets_ids # Use private subnets for ECS Fargate
 }
 
 # Module for Fargate Service
 module "fargate" {
   source = "./modules/fargate"
   cluster_name = module.ecs.cluster_name
-  task_definition_name = "host-website-on-ecs-fargate"
+  task_definition_name = "host-flask-app-on-ecs-fargate"
+  container_name = "flask-app-on-ecs-fargate"
+  container_image = "dbekoe1/flask-app-on-ecs-fargate:latest" # Replace!  Push the image to Docker Hub
+  container_port = 8080
+  subnet_ids = module.vpc.private_subnets_ids
+  security_group_ids = module.vpc.security_group_ids # Use SG from the ECS module
   task_definition_cpu = 256
   task_definition_memory = 512
 }
+
+# Module for Prometheus
+module "prometheus" {
+  source = "./modules/prometheus"
+  vpc_id = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets_ids
+  security_group_ids = module.vpc.security_group_ids # Use SG from ECS module
+}
+```
+
+*   Create a directory named `modules` inside the `terraform` directory.  Inside this directory, we'll define our modules.
+
+**Create Terraform Modules:**
+
+*   `terraform/modules/vpc/main.tf`:
+
+```terraform
+# terraform/modules/vpc/main.tf
+resource "aws_vpc" "ecs_fargate" {
+  cidr_block = var.vpc_cidr
+  tags = {
+    Name = "ecs-fargate-vpc"
+  }
+}
+
+resource "aws_subnet" "private" {
+  count = length(var.availability_zones)
+  vpc_id = aws_vpc.ecs_fargate.id
+  cidr_block = cidrsubnet(var.vpc_cidr, 8, count.index)
+  availability_zone = var.availability_zones[count.index]
+  tags = {
+    Name = "ecs-fargate-private-subnet-${count.index}"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.ecs_fargate.id
+  tags = {
+    Name = "ecs-fargate-igw"
+  }
+}
+
+resource "aws_route_table" "ecs_fargate" {
+  vpc_id = aws_vpc.ecs_fargate.id
+
+  tags = {
+    Name = "ecs-fargate-route-table"
+  }
+}
+
+resource "aws_route" "privateigw-route" {
+  route_table_id = aws_route_table.ecs_fargate.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id = aws_internet_gateway.gw.id
+}
+
+resource "aws_route_table_association" "private_subnet_association" {
+  count = length(var.availability_zones)
+  subnet_id = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.ecs_fargate.id
+}
+
+output "vpc_id" {
+  value = aws_vpc.ecs_fargate.id
+}
+
+output "private_subnets_ids" {
+  value = [for subnet in aws_subnet.private : subnet.id]
+} 
+```
+
+* Run the following terraform commands to confirm that there are no errors in the code;
+
+```bash
+terraform fmt
+```
+
+```bash
+terraform validate
+```
+
+*   `terraform/modules/vpc/variables.tf`:
+
+```terraform
+# terraform/modules/vpc/variables.tf
+variable "vpc_cidr" {
+  type = string
+  description = "CIDR block for the VPC"
+}
+
+variable "availability_zones" {
+  type = list(string)
+  description = "List of availability zones"
+}
+```
