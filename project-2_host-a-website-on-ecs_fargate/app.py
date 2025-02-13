@@ -1,27 +1,12 @@
-# app.py
+# flask-app/app.py
 from flask import Flask
 import os
-import logging
+
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-@app.route('/')
+@app.route("/")
 def hello():
-    logger.info("Main route accessed")
-    return 'Hello from ECS Fargate!'
+    return f"Hello from my awesome app!  Hostname: {os.uname()[1]}"
 
-@app.route('/health')
-def health():
-    logger.info("Health check performed")
-    return 'OK', 200
-
-@app.route('/version')
-def version():
-    logger.info("Version route accessed")
-    return 'Version 1.1'
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
