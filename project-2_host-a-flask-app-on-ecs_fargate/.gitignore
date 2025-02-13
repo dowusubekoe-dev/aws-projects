@@ -1,0 +1,84 @@
+# Terraform
+
+# Files
+*.tfstate
+*.tfstate.backup
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform/
+terraform.tfstate.d
+*.hcl
+.terraform.lock.hcl
+
+# Crash dumps
+crash.log
+
+# Credentials
+*.pem
+*.pub
+*.key
+secrets.tfvars
+terraform.tfvars.example
+terraform.tfvars.template
+*.p12
+
+# AWS
+# AWS CLI Configuration files
+.aws/
+
+# AWS related files
+*.aws
+*.zip
+
+# IDE and OS related
+# General OS and Editor
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+*.code-workspace
+# Vim
+*.swp
+# Idea
+.idea/
+*.ipr
+*.iws
+# JetBrains
+.idea
+*.iml
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Other
+*.log
+*.out
+*.enc
+*.env
+*.cache
+tmp/
+temp/
+/build
+/dist
+/output
+/local
+
+# Ignore documentation outputs
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.doc
+*.xls
+*.ppt
+*.chm
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.example
