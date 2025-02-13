@@ -73,4 +73,4 @@ docker run -d -p 8080:8080 project-2_host-a-website-on-ecs_fargate
 
 Open your web browser and go to `http://localhost:8080`.  You should see the "Hello" message.
 
-![Test Docker Locally](./architecture-diagram/test-docker-locally.PNG)
+![Test Docker Locally](./images/test-docker-locally.PNG)
