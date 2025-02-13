@@ -74,3 +74,42 @@ docker run -d -p 8080:8080 project-2_host-a-website-on-ecs_fargate
 Open your web browser and go to `http://localhost:8080`.  You should see the "Hello" message.
 
 ![Test Docker Locally](./images/build-and-test-docker-locally.PNG)
+
+**Step 4: Create Terraform Modules for Infrastructure Deployment**
+
+Create a directory named `terraform` in the `project-2_host-a-website-on-ecs_fargate` directory.  Inside this directory, create the following files:
+
+*   `terraform/main.tf`:  This will orchestrate the module calls.
+
+```terraform
+# terraform/main.tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"  # Or your desired version
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"  # Replace with your desired region
+}
+```
+* Run the following terraform commands to confirm that there are no errors in the code;
+
+```bash
+cd terraform
+```
+
+```bash
+terraform init
+```
+
+```bash
+terraform fmt
+```
+
+```bash
+terraform validate
+```
