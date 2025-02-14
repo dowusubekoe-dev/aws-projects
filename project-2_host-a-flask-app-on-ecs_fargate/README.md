@@ -4,7 +4,6 @@
 
 ![Architecture Diagram](./architecture-diagram/host-website-on-ecr_fargate.PNG)
 
-
 **Project Overview:**
 
 We'll create a simple Python Flask web application, containerize it with Docker, deploy it to AWS Fargate using Terraform and Jenkins, and set up monitoring with Prometheus and Grafana.
@@ -40,7 +39,7 @@ if __name__ == "__main__":
 *   `requirements.txt`:
 
 ```
-Flask
+flask==3.0.2
 ```
 
 **Step 3: Dockerize the Flask Application**
@@ -163,6 +162,7 @@ module "prometheus" {
 
 ```terraform
 # terraform/modules/vpc/main.tf
+# terraform/modules/vpc/main.tf
 resource "aws_vpc" "ecs_fargate" {
   cidr_block = var.vpc_cidr
   tags = {
@@ -195,7 +195,7 @@ resource "aws_route_table" "ecs_fargate" {
   }
 }
 
-resource "aws_route" "privateigw-route" {
+resource "aws_route" "private_igw_route" {
   route_table_id = aws_route_table.ecs_fargate.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id = aws_internet_gateway.gw.id
@@ -249,3 +249,145 @@ terraform fmt
 ```bash
 terraform validate
 ```
+
+*   `terraform/modules/ecs/main.tf`:
+
+```terraform
+resource "aws_ecs_cluster" "main" {
+  name = var.name
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
+
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE"]
+}
+
+resource "aws_security_group" "ecs_tasks" {
+  name = "ecs-tasks-security-group"
+  description = "Allow inbound access from the ECS task only"
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port = 0
+    to_port = 65535 # Adjust as needed, can be more specific
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # In real world, lock down to trusted IPs
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "cluster_name" {
+  value = aws_ecs_cluster.main.name
+}
+
+output "security_group_id" {
+  value = aws_security_group.ecs_tasks.id
+}
+```
+
+*   `terraform/modules/ecs/variables.tf`:
+
+```terraform
+variable "name" {
+  description = "Name of the ECS cluster"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "ID of the VPC"
+  type        = string
+}
+
+variable "subnet_ids" {
+  description = "List of subnet IDs"
+  type        = list(string)
+}
+```
+
+* Update the `terraform/main.tf` file to include the modules:
+
+```terraform
+# terraform/main.tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0" # Or your desired version
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1" # Replace with your desired region
+}
+
+# Module for VPC
+module "vpc" {
+  source             = "./modules/vpc"
+  vpc_cidr           = "10.0.0.0/16"
+  availability_zones = ["us-east-1a", "us-east-1b"]
+}
+
+# Module for ECS Cluster
+module "ecs" {
+  source     = "./modules/ecs"
+  name       = "my_ecs_cluster"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets_ids # Use private subnets for ECS Fargate
+}
+
+# Module for Fargate Service
+module "fargate" {
+  source                 = "./modules/fargate"
+  cluster_name           = module.ecs.cluster_name
+  task_definition_name   = "host-flask-app-on-ecs-fargate"
+  container_name         = "flask-app-on-ecs-fargate"
+  container_image        = "dbekoe1/flask-app-on-ecs-fargate:latest" # Replace!  Push the image to Docker Hub
+  container_port         = 8080
+  subnet_ids             = module.vpc.private_subnets_ids
+  security_group_ids     = module.vpc.security_group_ids # Use SG from the ECS module
+  task_definition_cpu    = 256
+  task_definition_memory = 512
+}
+
+# Module for Prometheus
+module "prometheus" {
+  source             = "./modules/prometheus"
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = module.vpc.private_subnets_ids
+  security_group_ids = module.vpc.security_group_ids # Use SG from ECS module
+}
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  cluster_name = module.ecs.cluster_name
+  service_name = module.ecs.service_name
+  alert_email  = var.alert_email
+}
+```
+
+* Run the following terraform commands to confirm that there are no errors in the code;
+
+```bash
+terraform init
+```
+
+```bash
+terraform fmt
+```
+
+```bash
+terraform validate
+
