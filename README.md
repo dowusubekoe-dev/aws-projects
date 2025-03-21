@@ -7,5 +7,3 @@ This repository contains Terraform configurations for different AWS projects, sh
 ### [Project 0: Connect Windows Machine on AWS From Windows PC](./project-0_connect-to-windows-instance-on-aws-from-windows-pc)
 
 ### [Project 1: Creating Linux Machine On AWS](./project-1_creating-linux-server-on-aws)
-
-### [Project 2: Automated Cloud Infrastructure Deployment & Monitoring](./project-2_host-a-flask-app-on-ecs_fargate)
