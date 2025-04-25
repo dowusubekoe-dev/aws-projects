@@ -12,6 +12,12 @@ variable "instance_type" {
   # No default - value provided via tfvars
 }
 
+variable "ami_id" {
+  description = "The specific AMI ID to use for the EC2 instance. Must be valid in the selected AWS region. Set in terraform.tfvars."
+  type        = string
+  # No default - value provided via tfvars
+}
+
 variable "key_name" {
   description = "Name of the EC2 Key Pair to use for SSH access. Set in terraform.tfvars."
   type        = string
