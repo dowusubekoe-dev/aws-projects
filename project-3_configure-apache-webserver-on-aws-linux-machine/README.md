@@ -47,3 +47,15 @@ terraform-apache-ec2/
 2. AWS CLI Configured: Install and configure the AWS CLI with credentials (aws configure). Terraform uses these credentials.
 3. Terraform Installed: Download and install the Terraform CLI.
 4. EC2 Key Pair: Create an EC2 Key Pair in the AWS region you intend to use. Download the .pem file and note the Key Pair name. You'll need this name for the Terraform configuration. Do not commit your .pem file to Git.
+5. Sample `terraform.tfvars` code
+
+```hcl
+# terraform-apache-ec2/terraform.tfvars
+
+# Define the CIDR block allowed for SSH (replace with your actual IP)
+ssh_allowed_cidr = ["YOUR_ACTUAL_PUBLIC_IP/32"]
+
+# Define the EC2 Key Pair name to use
+key_name = "aws_keypair_name"
+
+```
