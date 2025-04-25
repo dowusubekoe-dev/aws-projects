@@ -1,0 +1,6 @@
+VPC ID: vpc-024532f043494807d
+IGW ID: igw-0ef301328dc3b0ed6
+Subnet ID: subnet-06b1be70a49ca09fc
+Route Table ID: rtb-0109770ca95fe9f85
+--tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=infinitech-main-vpc}]"
+
