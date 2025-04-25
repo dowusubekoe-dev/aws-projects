@@ -27,4 +27,5 @@ variable "project_name" {
 variable "ssh_allowed_cidr" {
   description = "CIDR block allowed for SSH access. Use your IP for better security: 'xx.xxx.xx.xxx/32'."
   type        = list(string)
+  # set it via a terraform.tfvars file
 }
