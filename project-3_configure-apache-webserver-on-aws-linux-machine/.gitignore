@@ -1,0 +1,35 @@
+# .gitignore
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform plan files
+*.tfplan
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Terraform provider plugins
+.terraform/
+terraform.rc
+*.terraformrc
+
+# User-specific or environment-specific variables
+terraform.tfvars  # <--- Add this line
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Private key files
+*.pem
+
+# Other sensitive files or logs
+.env
