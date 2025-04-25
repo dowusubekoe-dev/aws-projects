@@ -47,15 +47,57 @@ terraform-apache-ec2/
 2. AWS CLI Configured: Install and configure the AWS CLI with credentials (aws configure). Terraform uses these credentials.
 3. Terraform Installed: Download and install the Terraform CLI.
 4. EC2 Key Pair: Create an EC2 Key Pair in the AWS region you intend to use. Download the .pem file and note the Key Pair name. You'll need this name for the Terraform configuration. Do not commit your .pem file to Git.
-5. Sample `terraform.tfvars` code
 
-```hcl
-# terraform-apache-ec2/terraform.tfvars
+#### Create a .gitignore file for Terraform
 
-# Define the CIDR block allowed for SSH (replace with your actual IP)
-ssh_allowed_cidr = ["YOUR_ACTUAL_PUBLIC_IP/32"]
+```bash
+# Local .terraform directories
+**/.terraform/*
 
-# Define the EC2 Key Pair name to use
-key_name = "aws_keypair_name"
+# Terraform state files
+*.tfstate
+*.tfstate.*
 
+# Crash log files
+crash.log
+
+# Terraform variable override files
+*.tfvars
+*.tfvars.json
+
+# Terraform plan output
+*.tfplan
+
+# Sensitive/temporary files
+*.bak
+*.backup
+*.log
+
+# Ignore override configs (if any)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore example templates that shouldn't be used directly
+!*.tfvars.example # <--- Referenced in the .gitignore file
+
+```
+
+#### Security Note
+
+Using a default ssh_allowed_cidr allows SSH from any IP. For better security, change the default or override it with your specific IP address (`curl ifconfig.me to find your IP`, then use ["YOUR_IP/32"]) in a `terraform.tfvars` file.
+
+**Create terraform.tfvars file:**
+
+- In the same directory (terraform-apache-ec2/), create a new file named `terraform.tfvars`.
+- Add your IP to terraform.tfvars:
+- Open the terraform.tfvars file and add the following line, replacing YOUR_ACTUAL_PUBLIC_IP with the IP address you found in running the command `curl ifconfig.me` in the terminal.
+
+✅🛡️ Pro Tip: Always commit a `terraform.tfvars.example` with safe placeholder values to show users what variables they need to set up. Your actual values should be in the `terraform.tfvars` file, which will not be pushed to the remote git repository.
+
+🔐 Make sure you don’t commit your actual terraform.tfvars file that contains real keys or IDs.
+
+```bash
+cp terraform.tfvars terraform.tfvars.example
 ```
