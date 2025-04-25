@@ -1,7 +1,5 @@
-# terraform-apache-ec2/terraform.tfvars
+# EC2 instance settings
+key_name      = "your-ec2-keypair-name"
 
-# Define the CIDR block allowed for SSH (replace with your actual IP)
-ssh_allowed_cidr = ["70.127.87.143/32"]
-
-# Define the EC2 Key Pair name to use
-key_name = "aws-iac_keypair"
+# VPC Security and Networking
+ssh_allowed_cidr = ["YOUR_ACTUAL_PUBLIC_IP/32"]
