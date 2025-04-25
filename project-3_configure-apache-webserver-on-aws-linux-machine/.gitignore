@@ -11,6 +11,8 @@ crash.log
 # Terraform variable override files
 *.tfvars
 *.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
 
 # Terraform plan output
 *.tfplan
