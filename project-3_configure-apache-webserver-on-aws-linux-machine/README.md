@@ -1,421 +1,252 @@
-# Configure Apache Webserver on AWS Linux EC2 Machine
 
-## Objective (Terraform Focused)
+# Deploy Apache Web Server on AWS EC2 with Terraform
 
-Automate the provisioning of an AWS EC2 instance running Amazon Linux 2, configure its security group to allow HTTP/HTTPS and SSH traffic, install and start the Apache web server using user data, and associate an Elastic IP for a stable public address.
+## 1. Project Objective & Scenario
 
-## Scenario
+### Objective (Terraform Focused)
 
-An E-Commerce startup company, specializing in tech gadgets, decides to launch their online platform. They opt for AWS, specifically a Linux EC2 instance, for its scalability and robustness. The goal is to establish a stable and responsive website to cater for their growing customer base, ensuring smooth functionality and security in the competitive online tech market.
+This project automates the deployment of a secure Apache web server running on an Amazon Linux 2 EC2 instance within a custom AWS Virtual Private Cloud (VPC). It utilizes Terraform for Infrastructure as Code (IaC) to ensure repeatable, consistent, and version-controlled infrastructure provisioning.
 
-## Description
+### Scenario
 
-1. Setting up and configuring an Apache Webserver on the AWS EC2 instance.
+An E-Commerce startup company, specializing in tech gadgets, needs to launch their online platform. They've chosen AWS for its scalability and robustness, specifically targeting a Linux EC2 instance. The goal is to establish a stable, secure, and responsive website foundation capable of handling growing customer traffic and safeguarding data in the competitive online tech market. This Terraform project builds that foundational infrastructure.
 
-2. Optimizing the performance for high traffic and securing the server with firewalls.
+## 2. Core Functionality & Description
 
-3. Setup with the focus of efficiently handling web traffic and safeguarding customer data.
+This Terraform configuration accomplishes the following:
 
-## Overview & Key Concepts
+1. **Provisions Custom Networking:** Creates a dedicated VPC with public subnets across two Availability Zones, an Internet Gateway, and route tables for controlled internet access.
+2. **Launches Secure EC2 Instance:** Deploys an EC2 instance using a specified Amazon Machine Image (AMI) within one of the public subnets.
+3. **Installs Apache:** Uses EC2 User Data to automatically update the instance, install the Apache HTTP Server (`httpd`) and `mod_ssl` (for potential future HTTPS), start the service, and enable it on boot.
+4. **Configures Firewall Rules:**
+    * Sets up an AWS Security Group to allow inbound HTTP (port 80), HTTPS (port 443) from anywhere, and SSH (port 22) strictly from a specified IP address.
+    * Configures the instance's internal firewall (`firewalld` on Amazon Linux 2) via User Data to permit HTTP and HTTPS traffic.
+5. **Assigns Static IP:** Allocates an Elastic IP (EIP) and associates it with the EC2 instance for a stable, predictable public IP address.
+6. **Parameterizes Configuration:** Uses Terraform variables (`.tfvars`) to manage environment-specific settings like region, instance type, AMI ID, key pair name, and allowed SSH IP, promoting reusability and security.
 
-Key Terraform Concepts we'll Use:
+## 3. Technologies Used
 
-1. Provider: Configure the AWS provider.
-2. Resources: Define AWS components like aws_instance, aws_security_group, aws_eip, aws_eip_association.
-3. Data Sources: Look up existing information like the latest AMI or default VPC details.
-4. Variables: Parameterize configuration (like region, instance type, key name).
-5. Outputs: Display useful information after deployment (like the instance's public IP).
-6. User Data: Pass a script to the EC2 instance to run on launch (for installing Apache).
+* **AWS (Amazon Web Services):**
+  * **VPC (Virtual Private Cloud):** Isolated network environment.
+  * **Subnets:** Public network segments within the VPC.
+  * **Internet Gateway (IGW):** Enables internet access for the VPC.
+  * **Route Tables:** Controls network traffic routing.
+  * **EC2 (Elastic Compute Cloud):** Virtual Server hosting the Apache application.
+  * **Security Groups:** Instance-level stateful firewall.
+  * **Elastic IP (EIP):** Static public IPv4 address.
+  * **IAM (Implicit):** Permissions are required for Terraform/AWS CLI user/role.
+* **Terraform:** Infrastructure as Code (IaC) tool (v1.x+).
+* **Apache HTTP Server:** Web server software (`httpd`).
+* **Amazon Linux 2:** Operating System for the EC2 instance (configurable via `ami_id`).
 
-## Project Structure
+## 4. Key Terraform Concepts Utilized
 
-Create a directory for your project, for example, terraform-apache-ec2. Inside this directory, create the following files:
+* **Providers:** Configuring the AWS provider (`hashicorp/aws`).
+* **Resources:** Defining AWS components (`aws_vpc`, `aws_subnet`, `aws_instance`, `aws_security_group`, `aws_eip`, etc.).
+* **Variables:** Parameterizing the configuration (defined in `variables.tf`, values provided in `terraform.tfvars`).
+* **Input Variables (`.tfvars`):** Supplying environment-specific or sensitive values securely.
+* **Outputs:** Displaying useful information post-deployment (`instance_public_ip`, `website_url`, `ssh_command`).
+* **Data Sources:** Querying AWS for information (`aws_availability_zones`).
+* **User Data:** Bootstrapping the EC2 instance (installing Apache).
+* **Implicit & Explicit Dependencies:** Ensuring resources are created in the correct order (`depends_on`).
 
-```md
+## 5. Prerequisites
+
+Before deployment, ensure you have:
+
+1. **AWS Account:** Active account with permissions to create VPC, EC2, EIP, Security Group, and related resources.
+2. **AWS CLI Installed & Configured:**
+    * Install: [AWS CLI Installation Guide](https://aws.amazon.com/cli/)
+    * Configure: Run `aws configure` and provide your Access Key ID, Secret Access Key, default region, and output format. Terraform uses these credentials.
+3. **Terraform CLI Installed:**
+    * Install: [Terraform Installation Guide](https://developer.hashicorp.com/terraform/downloads) (v1.x or later recommended). Verify with `terraform version`.
+4. **EC2 Key Pair:**
+    * An existing EC2 Key Pair in your target AWS region (e.g., `us-east-1`).
+    * Note the **exact name** of the key pair.
+    * Possess the corresponding private key file (`.pem` or `.ppk`) locally for SSH access. **Never commit your private key.**
+5. **Git (Optional):** For cloning the project repository.
+
+## 6. Project Structure
+
+```bash
 terraform-apache-ec2/
-├── main.tf         # Core infrastructure resources
-├── variables.tf    # Input variables definitions
-├── outputs.tf      # Output values definition
-├── userdata.sh     # Apache installation script (optional, can be inline)
-└── README.md       # Your updated project README
-
+├── main.tf                 # Core infrastructure resource definitions
+├── variables.tf            # Input variable declarations
+├── outputs.tf              # Output value definitions
+├── terraform.tfvars.example # Example variable values (safe for Git)
+├── terraform.tfvars        # Actual variable values (KEEP PRIVATE - add to .gitignore!)
+├── .gitignore              # Specifies intentionally untracked files Git should ignore
+└── README.md               # This file
 ```
 
-### Step 1: Pre-requisites
+## 7. Configuration (`terraform.tfvars`)
 
-1. AWS Account: You need an active AWS account.
-2. AWS CLI Configured: Install and configure the AWS CLI with credentials (aws configure). Terraform uses these credentials.
-3. Terraform Installed: Download and install the Terraform CLI.
-4. EC2 Key Pair: Create an EC2 Key Pair in the AWS region you intend to use. Download the .pem file and note the Key Pair name. You'll need this name for the Terraform configuration. Do not commit your .pem file to Git.
+Sensitive or environment-specific variables are managed via a `terraform.tfvars` file. **This file should *not* be committed to version control.**
 
-#### Create a .gitignore file for Terraform
+**Setup Steps:**
 
-```bash
-# Local .terraform directories
-**/.terraform/*
+1. **Copy the Example:** Create your personal configuration file from the example provided:
 
-# Terraform state files
-*.tfstate
-*.tfstate.*
+    ```bash
+    cp terraform.tfvars.example terraform.tfvars
+    ```
 
-# Crash log files
-crash.log
+2. **Edit `terraform.tfvars`:** Open the newly created `terraform.tfvars` file and replace the placeholder values with your actual configuration details.
 
-# Terraform variable override files
-*.tfvars
-*.tfvars.json
+    *Sample `terraform.tfvars.example` (placeholders):*
 
-# Terraform plan output
-*.tfplan
+    ```hcl
+    # terraform.tfvars.example
+    # --- AWS Provider Configuration ---
+    aws_region = "us-east-1"
 
-# Sensitive/temporary files
-*.bak
-*.backup
-*.log
+    # --- EC2 Instance Configuration ---
+    # Find a suitable AMI ID in your chosen region (e.g., latest Amazon Linux 2 HVM)
+    ami_id        = "ami-xxxxxxxxxxxxxxxxx" # Replace with a valid AMI ID for your region
+    instance_type = "t2.micro"
+    key_name      = "your-key-pair-name"    # Replace with your EC2 Key Pair name
 
-# Ignore override configs (if any)
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
+    # --- Security Configuration ---
+    # Replace with YOUR actual public IP address/range for secure SSH access
+    # Find your IP: curl ifconfig.me || curl ipinfo.io/ip
+    ssh_allowed_cidr = ["YOUR_IP_ADDRESS/32"]
 
-# Ignore example templates that shouldn't be used directly
-!*.tfvars.example # <--- Referenced in the .gitignore file
+    # --- Networking Configuration ---
+    vpc_cidr_block           = "10.0.0.0/16"
+    public_subnet_a_cidr_block = "10.0.1.0/24"
+    public_subnet_b_cidr_block = "10.0.2.0/24"
 
-```
+    # --- Optional: Override Default Variables ---
+    # project_name = "my-custom-project-prefix"
+    ```
 
-#### Security Note
+3. **Security Best Practice (SSH CIDR):** 🛡️ The `ssh_allowed_cidr` variable is crucial for security. Setting it to your specific IP address (`["YOUR_IP_ADDRESS/32"]`) significantly limits potential unauthorized access compared to allowing SSH from anywhere (`["0.0.0.0/0"]`).
 
-Using a default ssh_allowed_cidr allows SSH from any IP. For better security, change the default or override it with your specific IP address (`curl ifconfig.me to find your IP`, then use ["YOUR_IP/32"]) in a `terraform.tfvars` file.
+4. **`.gitignore`:** Ensure your `.gitignore` file correctly ignores `terraform.tfvars` and other sensitive Terraform files:
 
-**Create terraform.tfvars file:**
+    ```gitignore
+    # Local .terraform directories
+    **/.terraform/*
 
-- In the same directory (terraform-apache-ec2/), create a new file named `terraform.tfvars`.
-- Add your IP to terraform.tfvars:
-- Open the terraform.tfvars file and add the following line, replacing YOUR_ACTUAL_PUBLIC_IP with the IP address you found in running the command `curl ifconfig.me` in the terminal.
+    # Terraform state files
+    *.tfstate
+    *.tfstate.*
 
-✅🛡️ Pro Tip: Always commit a `terraform.tfvars.example` with safe placeholder values to show users what variables they need to set up. Your actual values should be in the `terraform.tfvars` file, which will not be pushed to the remote git repository.
+    # Crash log files
+    crash.log
+    crash.*.log
 
-🔐 Make sure you don’t commit your actual terraform.tfvars file that contains real keys or IDs.
+    # Exclude terraform.tfvars to avoid committing sensitive values
+    terraform.tfvars
+    *.tfvars.json
+    *.auto.tfvars
+    *.auto.tfvars.json
 
-```bash
-cp terraform.tfvars terraform.tfvars.example
-```
+    # Terraform plan output files
+    *.tfplan
 
-### Step 2: Define Variables (variables.tf)
+    # Override files
+    override.tf
+    override.tf.json
+    *_override.tf
+    *_override.tf.json
 
-This file defines the input variables for your Terraform configuration, making it reusable and configurable.
+    # Private key files
+    *.pem
+    *.ppk
 
-```hcl
+    # Instance Lock Files
+    .terraform.lock.hcl
+    ```
 
-# terraform-apache-ec2/variables.tf
+## 8. Deployment Steps
 
-iable "aws_region" {
-  description = "The AWS region to deploy resources in. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
+Navigate to the project directory (`terraform-apache-ec2/`) in your terminal and run the following commands:
 
-variable "instance_type" {
-  description = "The EC2 instance type. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
+1. **Initialize Terraform:** Downloads the required AWS provider plugin.
 
-variable "key_name" {
-  description = "Name of the EC2 Key Pair to use for SSH access. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
+    ```bash
+    terraform init
+    ```
 
-variable "project_name" {
-  description = "A name prefix for resources."
-  type        = string
-  default     = "ecommerce-web" # Keeping this default is often okay, but can be moved too if desired
-}
+2. **Validate Configuration:** Checks syntax and configuration validity.
 
-variable "ssh_allowed_cidr" {
-  description = "CIDR block allowed for SSH access (e.g., ['YOUR_IP/32']). Set in terraform.tfvars."
-  type        = list(string)
-  # No default - value provided via tfvars
-}
+    ```bash
+    terraform validate
+    ```
 
-# --- Networking Variables ---
+3. **Plan Deployment:** Creates an execution plan showing what resources will be created, changed, or destroyed. **Review this carefully.**
 
-variable "vpc_cidr_block" {
-  description = "CIDR block for the VPC. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
-
-variable "public_subnet_a_cidr_block" {
-  description = "CIDR block for the public subnet in AZ A. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
-
-variable "public_subnet_b_cidr_block" {
-  description = "CIDR block for the public subnet in AZ B. Set in terraform.tfvars."
-  type        = string
-  # No default - value provided via tfvars
-}
-
-```
-
-### Step 3: Define Core Resources (main.tf)
-
-This is the main file where you define the AWS resources.
-
-```hcl
-
-# terraform-apache-ec2/main.tf
-
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = var.aws_region
-}
-
-# --- Networking Infrastructure ---
-
-# Data source to get available Availability Zones in the region
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-# Create a VPC
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr_block
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "${var.project_name}-vpc"
-  }
-}
-
-# Create Public Subnet in the first AZ
-resource "aws_subnet" "public_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_a_cidr_block
-  availability_zone       = data.aws_availability_zones.available.names[0] # First AZ
-  map_public_ip_on_launch = true                                           # Instances launched here get a public IP by default
-
-  tags = {
-    Name = "${var.project_name}-public-subnet-a"
-  }
-}
-
-# Create Public Subnet in the second AZ
-resource "aws_subnet" "public_b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_b_cidr_block
-  availability_zone       = data.aws_availability_zones.available.names[1] # Second AZ
-  map_public_ip_on_launch = true                                           # Instances launched here get a public IP by default
-
-  tags = {
-    Name = "${var.project_name}-public-subnet-b"
-  }
-}
-
-# Create an Internet Gateway
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "${var.project_name}-igw"
-  }
-}
-
-# Create a Public Route Table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0" # Route for all internet-bound traffic
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "${var.project_name}-public-rt"
-  }
-}
-
-# Associate Public Route Table with Public Subnet A
-resource "aws_route_table_association" "public_a" {
-  subnet_id      = aws_subnet.public_a.id
-  route_table_id = aws_route_table.public.id
-}
-
-# Associate Public Route Table with Public Subnet B
-resource "aws_route_table_association" "public_b" {
-  subnet_id      = aws_subnet.public_b.id
-  route_table_id = aws_route_table.public.id
-}
-
-# --- Security Group (Update: Associate with our VPC) ---
-
-resource "aws_security_group" "web_server_sg" {
-  name        = "${var.project_name}-sg"
-  description = "Allow HTTP, HTTPS, and SSH traffic"
-  vpc_id      = aws_vpc.main.id # <-- Associate with our VPC
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssh_allowed_cidr # Use the variable defined in tfvars
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.project_name}-sg"
-  }
-}
-
-# --- EC2 Instance and Related Resources ---
-
-# Data source to get the latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux_2" {
-  most_recent = true
-  owners      = ["amazon"]
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# Define the EC2 Instance (Update: Use var.ami_id)
-resource "aws_instance" "web_server" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  key_name      = var.key_name
-
-  subnet_id              = aws_subnet.public_a.id
-  vpc_security_group_ids = [aws_security_group.web_server_sg.id]
-
-  # User data script remains the same
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y httpd mod_ssl
-              systemctl start httpd
-              systemctl enable httpd
-              echo "<h1>Deployed via Terraform in Custom VPC</h1>
-              <h2>Instance ID: $(curl -s http://169.254.169.254/latest/meta-data/instance-id)</h2>
-              <p>Subnet ID: $(curl -s http://169.254.169.254/latest/meta-data/subnet-id)</p>
-              <p>AMI ID: $(curl -s http://169.254.169.254/latest/meta-data/ami-id)</p>" > /var/www/html/index.html
-              firewall-cmd --permanent --add-service=http
-              firewall-cmd --permanent --add-service=https
-              firewall-cmd --reload
-              EOF
-
-  tags = {
-    Name = "${var.project_name}-instance"
-  }
-
-  depends_on = [aws_internet_gateway.gw]
-}
-
-
-# Allocate an Elastic IP
-resource "aws_eip" "web_server_eip" {
-  domain = "vpc" # Correct scope for VPC EIPs
-
-  # Explicitly depend on the Internet Gateway to ensure network path exists
-  depends_on = [aws_internet_gateway.gw]
-
-  tags = {
-    Name = "${var.project_name}-eip"
-  }
-}
-
-# Associate the Elastic IP with the EC2 Instance
-resource "aws_eip_association" "eip_assoc" {
-  instance_id   = aws_instance.web_server.id
-  allocation_id = aws_eip.web_server_eip.id
-}
-
-```
-
-**User Data**: The user_data block contains a shell script that AWS runs the first time the instance boots. It updates packages, installs Apache (httpd), starts the service, enables it to start on future boots, and creates a simple default index.html page.
-
-### Step 4: Define Outputs (outputs.tf)
-
-This file defines what information Terraform should display after applying the configuration.
-
-```hcl
-
-# terraform-apache-ec2/outputs.tf
-
-output "instance_public_ip" {
-  description = "Public IP address of the EC2 instance (Elastic IP)."
-  value       = aws_eip.web_server_eip.public_ip
-}
-
-output "instance_public_dns" {
-  description = "Public DNS name of the EC2 instance."
-  value       = aws_instance.web_server.public_dns # Note: DNS might resolve to EIP or initial public IP depending on timing
-}
-
-output "ssh_command" {
-  description = "Command to SSH into the instance (replace 'your-key.pem' with your actual key file path)."
-  value       = "ssh -i /mnt/e/main-pod/1 - cloud-computing_devops/projects/aws-cloud/aws-projects/aws-iac_keypair.pem ec2-user@${aws_eip.web_server_eip.public_ip}" 
-}
-
-output "website_url" {
-  description = "URL to access the Apache web server."
-  value       = "http://${aws_eip.web_server_eip.public_ip}"
-}
-
-```
-
-### Step 5: Deployment using Terraform
-
-1. **Navigate to Directory**: Open your terminal and cd into the terraform-apache-ec2 directory.
-2. **Initialize Terraform**: Run terraform init. This downloads the necessary provider plugins (AWS provider in this case).
-3. **Validate Configuration**: Run terraform validate. Checks syntax errors in your .tf files.
-4. **Plan Deployment**: Run terraform plan -var="key_name=YOUR_KEY_PAIR_NAME".
-    - Replace YOUR_KEY_PAIR_NAME with the actual name of the EC2 key pair you created in the prerequisites.
-    - This command shows you what resources Terraform will create, modify, or destroy. Review the plan carefully.
-    - Alternative for key_name: Create a file named terraform.tfvars and put key_name = "YOUR_KEY_PAIR_NAME" inside it. Then you can just run terraform plan. Do not commit terraform.tfvars if it contains sensitive information.
-5. Apply Deployment: If the plan looks good, run terraform apply -var="key_name=YOUR_KEY_PAIR_NAME" (or just terraform apply if using terraform.tfvars).
-    - Terraform will ask for confirmation. Type yes and press Enter.
-    - Terraform will now create the Security Group, EC2 Instance, Elastic IP, and associate them.
-    - Wait for the process to complete. It will display the outputs defined in outputs.tf.
-
-### Step 6: Verification
-
-1. Access Website: Open a web browser and navigate to the website_url shown in the Terraform output (e.g., http://YOUR_ELASTIC_IP). You should see the "Deployed via Terraform" message. It might take a minute or two after apply finishes for the instance to fully boot and start Apache.
-2. SSH Access (Optional): Use the ssh_command from the output. Replace path/to/your-key.pem with the actual path to your private key file.
-    - Example: ssh -i ~/.ssh/my-aws-key.pem ec2-user@YOUR_ELASTIC_IP
-    - Remember to set correct permissions for your .pem file: chmod 400 path/to/your-key.pem.
+    ```bash
+    terraform plan
+    ```
+
+4. **Apply Deployment:** Provisions the infrastructure on AWS according to the plan. Requires confirmation.
+
+    ```bash
+    terraform apply
+    ```
+
+    Enter `yes` when prompted to proceed.
+
+## 9. Verification
+
+After a successful `terraform apply`:
+
+1. **Check Outputs:** Terraform will display the values defined in `outputs.tf`. Note the `website_url` and `ssh_command`.
+2. **Access Web Server:** Open the `website_url` (e.g., `http://YOUR_ELASTIC_IP`) in your browser. You should see the default Apache test page generated by the User Data script. *Allow a minute or two post-apply for the instance boot and Apache startup.*
+3. **SSH Access:** Use the `ssh_command` output to connect. Replace `path/to/your-key.pem` with the actual path to your private key file.
+
+    ```bash
+    # Example using the key name specified in terraform.tfvars
+    ssh -i path/to/your-key-pair-name.pem ec2-user@YOUR_ELASTIC_IP
+    ```
+
+    *(Remember to set secure permissions for your key file: `chmod 400 path/to/your-key-pair-name.pem`)*
+
+## 10. Cleanup
+
+To avoid incurring further AWS costs, destroy the provisioned infrastructure when finished:
+
+1. **Run Destroy Command:**
+
+    ```bash
+    terraform destroy
+    ```
+
+2. **Confirm:** Review the resources to be destroyed and enter `yes` when prompted.
+
+## 11. Terraform Code Overview
+
+* **`main.tf`:** Defines all the AWS resources (VPC, subnets, IGW, route tables, security group, EC2 instance, EIP) and their configurations, including the user data script for Apache installation.
+* **`variables.tf`:** Declares all the input variables used in the configuration (e.g., `aws_region`, `instance_type`, `key_name`, `ami_id`). Defines their types and descriptions but generally omits default values for required inputs (which are provided via `terraform.tfvars`).
+* **`outputs.tf`:** Specifies the data points that Terraform should display after successfully applying the configuration (e.g., the public IP address, instance ID, website URL).
+
+## 12. AWS Resources Created
+
+This project provisions the following primary AWS resources:
+
+* `aws_vpc` (1)
+* `aws_subnet` (2 - Public)
+* `aws_internet_gateway` (1)
+* `aws_route_table` (1 - Public)
+* `aws_route_table_association` (2)
+* `aws_security_group` (1)
+* `aws_instance` (1 - EC2)
+* `aws_eip` (1)
+* `aws_eip_association` (1)
+
+## 13. Potential Enhancements & Next Steps
+
+This project provides a solid foundation. Potential future improvements include:
+
+* **HTTPS Configuration:** Implement SSL/TLS using AWS Certificate Manager (ACM) and an Application Load Balancer (ALB).
+* **High Availability & Scalability:** Introduce an ALB and an Auto Scaling Group (ASG) across multiple AZs.
+* **Database:** Provision an RDS database instance in private subnets.
+* **Private Subnets:** Add private subnets for backend resources like databases.
+* **NAT Gateway:** Provide outbound internet access for resources in private subnets.
+* **Domain Name:** Use Route 53 to point a custom domain to the EIP or ALB.
+* **Monitoring:** Integrate CloudWatch Alarms and custom metrics.
+* **Configuration Management:** Use Ansible or EC2 Image Builder for more complex application setups.
+* **CI/CD Pipeline:** Automate deployment using GitHub Actions, GitLab CI, AWS CodePipeline, etc.
+* **Remote State Backend:** Configure Terraform to store state securely in an S3 bucket with locking via DynamoDB.
